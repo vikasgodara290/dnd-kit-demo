@@ -5,6 +5,7 @@ import {
   useDraggable,
   DragStartEvent,
   DragEndEvent,
+  DragOverEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
@@ -35,6 +36,7 @@ const tasks_initial: TaskType[] = [
 
 function App() {
   const [tasks, setTasks] = useState<TaskType[]>(tasks_initial);
+  const [isOver, setIsOver] = useState<boolean>(false);
   const ondragstart = (e: DragStartEvent) => {
     const { active } = e;
     console.log(active.id, "drag start");
@@ -50,16 +52,24 @@ function App() {
           task.id === active.id ? { ...task, card: String(over.id) } : task
         )
       );
+
+      setIsOver(false)
     }
   };
 
+  const ondragover = (e: DragOverEvent) => {
+    const {active, over} = e;
+    if(over){
+      setIsOver(true);
+    }
+  }
+
   return (
     <div>
-      <DndContext onDragStart={ondragstart} onDragEnd={ondragend}>
+      <DndContext onDragStart={ondragstart} onDragEnd={ondragend} onDragOver={ondragover}>
         {/* Components that use `useDraggable`, `useDroppable` */}
-        <Droppable id="doing" tasks={tasks} />
-        <Droppable id="any" tasks={tasks} />
-        
+        <Droppable id="doing" tasks={tasks} isOver={isOver}/>
+        <Droppable id="any" tasks={tasks} isOver={isOver}/>
       </DndContext>
     </div>
   );
@@ -68,9 +78,10 @@ function App() {
 interface DroppableProps {
   id: string;
   tasks: TaskType[];
+  isOver: boolean;
 }
 
-function Droppable({ id, tasks }: DroppableProps) {
+function Droppable({ id, tasks , isOver}: DroppableProps) {
   const { setNodeRef } = useDroppable({
     id: id,
   });
@@ -78,14 +89,16 @@ function Droppable({ id, tasks }: DroppableProps) {
   return (
     <>
       <div ref={setNodeRef} className="m-2 py-4 w-56 h-56 bg-amber-100">
+        {isOver && <div className="px-2 w-11/12 h-9 my-2 mx-auto bg-black"></div>}
         {tasks
           .filter((task) => task.card === id)
-          .map((task: TaskType) => <Task key={task.id} task={task} />)}
+          .map((task: TaskType) => (
+            <Task key={task.id} task={task} />
+          ))}
       </div>
     </>
   );
 }
-
 
 //will render a task
 interface TaskCompType {
@@ -103,15 +116,14 @@ function Task({ task }: TaskCompType) {
 
   return (
     <>
-      <div className="" ref={setNodeRef}>
-        <button
-          className="w-11/12 h-9 my-2 bg-black rounded-[8px] text-white"
-          {...listeners}
-          {...attributes}
-          style={style}
-        >
-          {task.task}
-        </button>
+      <div
+        ref={setNodeRef}
+        className="flex items-center px-2 w-11/12 h-9 my-2 mx-auto bg-black rounded-[8px] text-white"
+        {...listeners}
+        {...attributes}
+        style={style}
+      >
+        {task.task}
       </div>
     </>
   );
